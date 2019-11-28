@@ -114,71 +114,33 @@ function Test-Subscription {
 
 <#
 .SYNOPSIS
-    Get a list of servers, including password, for IaaS Virtual machine deployed in Azure.
+    Get an Azure Access token.
 .DESCRIPTION
-    Get-ServerCredentials reads server.json and retrieves the current credentials from Azure KeyVault.
-    The expected format of servers.json is:
-        [
-            {
-                "Name": "tstncuvmsql01",
-                "Hostname":"tstncuvmsql01.fhq55.net",
-                "Username":"~\\fhqsupport",
-                "PasswordKeyVaultSecret": "tstncuvmsql01"
-            }
-        ]
-    The PasswordKeyVaultSecret refers to the Azure KeyVault secret name containing the password.
-.PARAMETER Path
+    Get-AccessToken attempts to dump an access token for the give resource identifier to the console.
+    
+.PARAMETER Resource
     The path to the servers.json file.
-.PARAMETER VaultName
-    The name of the Azure KeyVault to retrieve passwords from.
-.PARAMETER ServerName
-    The name of the Azure KeyVault to retrieve passwords from.
 #>
-function Get-ServerCredentials {
+function Get-AccessToken {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNull()]
-        [ValidateScript({Test-Path $_ })]
-        [string]
-        $Path,
+        [Parameter(Mandatory=$false, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        $Context=(Get-AzContext),
 
-        [Parameter(Mandatory=$true)]
+        # Parameter help description
+        [Parameter(Mandatory=$false, Position=1)]
         [string]
-        $VaultName,
-
-        [Parameter(Mandatory=$false)]
-        [string]
-        $ServerName
+        $Resource
     )
     
-    $serverList = Get-Content $Path -Raw | ConvertFrom-Json
-
-    # filter the list of servers to the given server
-    if ($PSBoundParameters.ContainsKey("ServerName")) {
-        $serverList = $serverList | Where-Object Name -eq $ServerName    
+    if ($null -eq $Context) {
+        throw [System.ArgumentNullException]::new("Context")
     }
-    
-    foreach ($server in $serverList) {
-        
-        try 
-        {
-            $password = (Get-AzureKeyVaultSecret -VaultName $VaultName -Name $server.PasswordKeyVaultSecret -ErrorAction Stop).SecretValue
-        }
-        catch
-        {
-            Write-Warning "Password could not be obtained for $($server.Name)"
-        }
-        
-        if ($password) 
-        {
-            Write-Verbose ("Retrieved credentials for {0}." -f $server.Name)
-            $credential = [PSCredential]::new($server.Username, $password)
 
-            $server | `
-                Add-Member -MemberType NoteProperty -Name "Password" -Value $password -PassThru | `
-                Add-Member -MemberType NoteProperty -Name "Credential" -Value $credential
-        }
-        Write-Output $server
-    }
+    $authenticationFactory = [Microsoft.Azure.Commands.Common.Authentication.AzureSession]::Instance.AuthenticationFactory
+    $token = $authenticationFactory.Authenticate($Context.Account, $Context.Environment, $Context.Tenant.Id, $null, "Never", $null, "https://management.azure.com")
+    Write-Output $token
+
 }
+
