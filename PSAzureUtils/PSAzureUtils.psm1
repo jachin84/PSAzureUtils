@@ -131,7 +131,7 @@ function Get-AccessToken {
         # Parameter help description
         [Parameter(Mandatory=$false, Position=1)]
         [string]
-        $Resource
+        $Resource = "https://management.azure.com"
     )
     
     if ($null -eq $Context) {
@@ -139,7 +139,7 @@ function Get-AccessToken {
     }
 
     $authenticationFactory = [Microsoft.Azure.Commands.Common.Authentication.AzureSession]::Instance.AuthenticationFactory
-    $token = $authenticationFactory.Authenticate($Context.Account, $Context.Environment, $Context.Tenant.Id, $null, "Never", $null, "https://management.azure.com")
+    $token = $authenticationFactory.Authenticate($Context.Account, $Context.Environment, $Context.Tenant.Id, $null, "Never", $null, $Resource)
     Write-Output $token
 
 }
