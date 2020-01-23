@@ -140,7 +140,91 @@ function Get-AccessToken {
 
     $authenticationFactory = [Microsoft.Azure.Commands.Common.Authentication.AzureSession]::Instance.AuthenticationFactory
     $token = $authenticationFactory.Authenticate($Context.Account, $Context.Environment, $Context.Tenant.Id, $null, "Never", $null, $Resource)
-    Write-Output $token
+    Write-Output $token.AccessToken
 
 }
 
+function Connect-Azure
+{
+    [CmdletBinding(DefaultParameterSetName="Subscription")]
+    Param
+    (
+        # TenantId
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Subscription")]
+        [string]
+        $SubscriptionId,
+
+        # TenantId
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="Tenant")]
+        [string]
+        $TenantId
+    )
+
+    if ($PsCmdlet.ParameterSetName -eq "Subscription") {
+        Connect-AzureSubscription -SubscriptionId $SubscriptionId
+    }else {
+        Connect-AzureTenant -TenantId $TenantId
+    }
+}
+
+function Connect-AzureTenant
+{
+    [CmdletBinding()]
+    Param
+    (
+        # TenantId
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]
+        $TenantId
+    )
+
+    ## Attempt to connect to Azure
+    $subscriptions = $null
+    try {
+        $subscriptions = Get-AzSubscription -TenantId $tenantId
+    }
+    catch [System.Management.Automation.PSInvalidOperationException] {
+        Write-Warning "No existing connection to TenantId: $tenantId"
+    }
+
+    if (!$subscriptions) {
+        $azAccount = Connect-AzAccount -Tenant $tenantId -ErrorAction Stop
+        
+        if (($null -eq $azAccount) -or ($azAccount.Context.Tenant.Id -ne $tenantId)) {
+            Write-Error "Could not connect to Azure." -ErrorAction Stop
+        }  
+    }
+
+    Write-Output (Get-AzContext)
+}
+
+function Connect-AzureSubscription
+{
+    [CmdletBinding()]
+    Param
+    (
+        # TenantId
+        [Parameter(Mandatory=$true, Position=0)]
+        [string]
+        $SubscriptionId
+    )
+
+    ## Attempt to connect to Azure
+    $subscriptions = $null
+    try {
+        $subscriptions = Get-AzSubscription -SubscriptionId $SubscriptionId
+    }
+    catch [System.Management.Automation.PSInvalidOperationException] {
+        Write-Warning "No existing connection to TenantId: $tenantId"
+    }
+
+    if (!$subscriptions) {
+        $azAccount = Connect-AzAccount -ErrorAction Stop
+        
+        if (($null -eq $azAccount) -or ($azAccount.Context.Subscription.Id -ne $SubscriptionId)) {
+            Write-Error "Could not connect to Azure." -ErrorAction Stop
+        }  
+    }
+
+    Write-Output (Get-AzContext)
+}
