@@ -130,6 +130,18 @@ function Get-AccessToken {
 
 }
 
+<#
+.SYNOPSIS
+    Connect to Azure
+.DESCRIPTION
+    Connect-Azure connects to the given tenant or subscription.
+.EXAMPLE
+    PS C:\> Connect-Azure -SubscriptionId '12202988-c8c0-46a8-b43f-df4f5217a28d'
+    Connects to the Azure subscription with the SubscriptionId 12202988-c8c0-46a8-b43f-df4f5217a28d
+.EXAMPLE
+    PS C:\> Connect-Azure -TenantId '64b7dfc8-f9c4-49c9-b663-799896ce4ee2'
+    Connects to the Azure subscription with the TenantId 64b7dfc8-f9c4-49c9-b663-799896ce4ee2.
+#>
 function Connect-Azure
 {
     [CmdletBinding(DefaultParameterSetName="Subscription")]
